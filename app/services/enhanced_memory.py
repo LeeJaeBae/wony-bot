@@ -72,36 +72,28 @@ class EnhancedMemoryManager(ConversationMemoryManager):
         session_id: Optional[UUID] = None,
         top_k: int = 5
     ) -> List[Dict[str, Any]]:
-        """관련 메모리 검색 - 세션 기반으로 우선 검색"""
+        """관련 메모리 검색 - 전체 메모리에서 검색"""
         
         memories = []
         
-        # 현재 세션의 메모리 우선 검색
-        if session_id and self.rag_chain:
-            session_filter = {"session_id": str(session_id)}
-            session_memories = await self.query_memories(
-                query=query,
-                top_k=top_k,
-                tag_filter=None,
-                importance_filter=None
-            )
-            memories.extend(session_memories)
-            logger.info(f"Found {len(session_memories)} memories for session {session_id}")
-        
-        # 전체 메모리에서도 검색
+        # 전체 메모리에서 검색 (세션 구분 없이)
         if self.rag_chain:
-            all_memories = await self.query_memories(
-                query=query,
-                top_k=top_k,
-                tag_filter=None,
-                importance_filter=None  
-            )
-            
-            # 중복 제거
-            memory_ids = {m.get('id') for m in memories}
-            for mem in all_memories:
-                if mem.get('id') not in memory_ids:
-                    memories.append(mem)
+            try:
+                all_memories = await self.query_memories(
+                    query=query,
+                    top_k=top_k * 2,  # 더 많이 검색
+                    tag_filter=None,
+                    importance_filter=None  
+                )
+                memories = all_memories[:top_k]  # 상위 k개만 사용
+                logger.info(f"Found {len(memories)} relevant memories from all sessions")
+                
+                # 메모리 내용 로깅 (디버깅용)
+                for i, mem in enumerate(memories[:3]):
+                    content_preview = mem.get('content', '')[:100]
+                    logger.debug(f"Memory {i+1}: {content_preview}...")
+                    
+            except Exception as e:
+                logger.error(f"Error querying memories: {e}")
         
-        logger.info(f"Total {len(memories)} relevant memories found")
         return memories
