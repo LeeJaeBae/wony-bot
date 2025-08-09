@@ -178,8 +178,10 @@ class ConversationMemoryManager:
         
         # Check if should save
         if not force and importance.value < self.importance_threshold.value:
-            logger.debug(f"Message importance ({importance.name}) below threshold, skipping")
+            logger.info(f"Message importance ({importance.name}) below threshold ({self.importance_threshold.name}), skipping")
             return False
+        
+        logger.info(f"Saving message with importance {importance.name} (threshold: {self.importance_threshold.name})")
         
         # Extract key information
         extracted = self.extract_key_information(message)

@@ -26,7 +26,7 @@ class ChatService:
             self.memory_manager = ConversationMemoryManager(
                 rag_chain=rag_chain,
                 auto_save=True,
-                importance_threshold=ImportanceLevel.MEDIUM
+                importance_threshold=ImportanceLevel.LOW  # 더 많은 대화 저장
             )
             logger.info("Memory manager enabled for chat service")
         else:
