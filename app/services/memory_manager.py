@@ -124,7 +124,9 @@ class ConversationMemoryManager:
             # Check if this is a response to a question
             for prev_msg in context[-3:]:
                 if prev_msg.role == MessageRole.USER and "?" in prev_msg.content:
-                    importance = max(importance, ImportanceLevel.HIGH)
+                    # Compare enum values properly
+                    if importance.value < ImportanceLevel.HIGH.value:
+                        importance = ImportanceLevel.HIGH
                     tags.append("answer")
                     break
         
