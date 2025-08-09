@@ -103,13 +103,19 @@ def chat(
         
         # Show welcome message
         if prompt == "wony" or prompt == "default":
-            # Wony's personalized welcome
+            # Wony's personalized welcome with better design
             console.print(Panel.fit(
-                f"[bold magenta]💝 워니 비서 시스템[/bold magenta]\n"
+                f"[bold magenta]💝 워니 비서 시스템 v1.0[/bold magenta]\n"
                 f"[yellow]야호! 재원아~ 나는 너의 개인 비서 워니야! 🎀[/yellow]\n"
-                f"[dim]18살 여고생이고, 뭐든지 도와줄 수 있어![/dim]\n"
-                f"[dim]나가려면 'exit', 새로 시작하려면 'new' 라고 말해줘~[/dim]",
-                border_style="magenta"
+                f"[cyan]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/cyan]\n"
+                f"[dim white]💬 티키타카 모드 | 짧고 빠른 대화[/dim white]\n"
+                f"[dim white]💾 자동 메모리 저장 | 중요 정보 기억[/dim white]\n"
+                f"[cyan]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/cyan]\n"
+                f"[dim]🔹 exit/ㅂㅂ - 나가기  🔹 new/새로 - 새 대화[/dim]\n"
+                f"[dim]🔹 clear/지워 - 기록 삭제  🔹 help - 도움말[/dim]",
+                border_style="magenta",
+                title="[bold white]WonyBot[/bold white]",
+                subtitle="[dim]AI Personal Assistant[/dim]"
             ))
         else:
             console.print(Panel.fit(
@@ -124,27 +130,27 @@ def chat(
         # Main chat loop
         while True:
             try:
-                # Get user input
-                user_input = Prompt.ask("\n[bold blue]You[/bold blue]")
+                # Get user input with persistent prompt
+                user_input = Prompt.ask("\n[bold cyan]재원[/bold cyan] 💬")
                 
                 # Handle special commands
-                if user_input.lower() in ["exit", "quit", "q"]:
-                    console.print("[yellow]Goodbye! 👋[/yellow]")
+                if user_input.lower() in ["exit", "quit", "q", "ㅂㅂ", "바이"]:
+                    console.print("[yellow]야호! 다음에 또 만나~ 👋[/yellow]")
                     break
                 
-                if user_input.lower() == "clear":
-                    if session_id and Confirm.ask("Clear current session history?"):
+                if user_input.lower() in ["clear", "클리어", "지워"]:
+                    if session_id and Confirm.ask("[yellow]대화 기록 지울까?[/yellow]"):
                         await chat_service.clear_session(session_id)
-                        console.print("[green]Session history cleared[/green]")
+                        console.print("[green]✨ 대화 기록 깨끗하게 지웠어![/green]")
                     continue
                 
-                if user_input.lower() == "new":
+                if user_input.lower() in ["new", "새로", "새대화"]:
                     session_id = None
-                    console.print("[green]Started new session[/green]")
+                    console.print("[green]🆕 야호! 새로운 대화 시작![/green]")
                     continue
                 
                 # Process chat message
-                console.print("\n[bold green]Assistant:[/bold green]", end=" ")
+                console.print("\n[bold magenta]워니[/bold magenta] 🎀", end=" ")
                 
                 response_text = ""
                 current_session_id = None
@@ -186,7 +192,7 @@ def chat(
                 if current_session_id:
                     session_id = UUID(current_session_id)
                     if not session:  # Only show for new sessions
-                        console.print(f"\n[dim]Session ID: {session_id}[/dim]")
+                        console.print(f"\n[dim cyan]📌 세션: {str(session_id)[:8]}... | 💾 자동 저장 중[/dim cyan]")
                 
             except KeyboardInterrupt:
                 console.print("\n[yellow]Interrupted. Type 'exit' to quit.[/yellow]")
