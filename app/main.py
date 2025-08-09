@@ -102,14 +102,24 @@ def chat(
         system_prompt = prompt_template.content if prompt_template else None
         
         # Show welcome message
-        console.print(Panel.fit(
-            f"[bold cyan]🤖 WonyBot Chat Interface[/bold cyan]\n"
-            f"[dim]Model: {settings.ollama_model} | Prompt: {prompt}[/dim]\n"
-            f"[dim]Type 'exit' or 'quit' to end the conversation[/dim]\n"
-            f"[dim]Type 'clear' to clear the current session history[/dim]\n"
-            f"[dim]Type 'new' to start a new session[/dim]",
-            border_style="cyan"
-        ))
+        if prompt == "wony" or prompt == "default":
+            # Wony's personalized welcome
+            console.print(Panel.fit(
+                f"[bold magenta]💝 워니 비서 시스템[/bold magenta]\n"
+                f"[yellow]야호! 재원아~ 나는 너의 개인 비서 워니야! 🎀[/yellow]\n"
+                f"[dim]18살 여고생이고, 뭐든지 도와줄 수 있어![/dim]\n"
+                f"[dim]나가려면 'exit', 새로 시작하려면 'new' 라고 말해줘~[/dim]",
+                border_style="magenta"
+            ))
+        else:
+            console.print(Panel.fit(
+                f"[bold cyan]🤖 WonyBot Chat Interface[/bold cyan]\n"
+                f"[dim]Model: {settings.ollama_model} | Prompt: {prompt}[/dim]\n"
+                f"[dim]Type 'exit' or 'quit' to end the conversation[/dim]\n"
+                f"[dim]Type 'clear' to clear the current session history[/dim]\n"
+                f"[dim]Type 'new' to start a new session[/dim]",
+                border_style="cyan"
+            ))
         
         # Main chat loop
         while True:

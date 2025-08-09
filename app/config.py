@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     app_name: str = "WonyBot"
     debug: bool = False
     log_level: str = "INFO"
+    default_persona: str = "wony"  # Default persona to use
     
     # Conversation Settings
     max_history_length: int = 10  # Maximum messages to keep in context
