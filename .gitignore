@@ -62,3 +62,5 @@ dmypy.json
 # Installation artifacts
 wony-exec
 .wonybot_location
+# SpecStory explanation file
+.specstory/.what-is-this.md
