@@ -201,7 +201,7 @@ class ConversationMemoryManager:
             # Keep only the most recent entries, prioritizing higher importance
             sorted_buffer = sorted(
                 self.memory_buffer,
-                key=lambda x: (x.importance.value, x.timestamp),
+                key=lambda x: (x.importance.value, x.timestamp.timestamp() if hasattr(x.timestamp, 'timestamp') else 0),
                 reverse=True
             )
             self.memory_buffer = sorted_buffer[:self.BUFFER_CLEANUP_THRESHOLD]
