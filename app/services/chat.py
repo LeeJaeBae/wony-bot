@@ -8,6 +8,7 @@ from app.core.session import SessionManager
 from app.models.schemas import Message, MessageRole, ChatRequest, ChatResponse
 from app.config import settings
 from app.services.memory_manager import ConversationMemoryManager, ImportanceLevel
+from app.services.enhanced_memory import EnhancedMemoryManager
 from app.rag import RAGChain
 import logging
 
@@ -21,14 +22,14 @@ class ChatService:
         self.session_manager = SessionManager()
         self.enable_memory = enable_memory
         
-        # Initialize memory manager if enabled
+        # Initialize enhanced memory manager if enabled
         if enable_memory:
-            self.memory_manager = ConversationMemoryManager(
+            self.memory_manager = EnhancedMemoryManager(
                 rag_chain=rag_chain,
                 auto_save=True,
                 importance_threshold=ImportanceLevel.LOW  # 더 많은 대화 저장
             )
-            logger.info("Memory manager enabled for chat service")
+            logger.info("Enhanced Memory Manager enabled for chat service")
         else:
             self.memory_manager = None
         
@@ -65,11 +66,33 @@ class ChatService:
             limit=settings.max_history_length
         )
         
-        # Add system prompt if provided
+        # Add memory context to system prompt
+        memory_context = ""
+        if self.memory_manager and hasattr(self.memory_manager, 'get_relevant_memories'):
+            try:
+                # 관련 메모리 검색
+                relevant_memories = await self.memory_manager.get_relevant_memories(
+                    query=message,
+                    session_id=session_id,
+                    top_k=3
+                )
+                if relevant_memories:
+                    memory_context = "\n\n💾 이전 대화 기억:\n"
+                    for mem in relevant_memories[:3]:
+                        content = mem.get('content', '')[:200]
+                        memory_context += f"- {content}\n"
+                    logger.info(f"Added {len(relevant_memories)} memories to context")
+            except Exception as e:
+                logger.error(f"Failed to get memories: {e}")
+        
+        # Add system prompt with memory context if provided
         if system_prompt:
+            prompt_with_memory = system_prompt
+            if memory_context:
+                prompt_with_memory += memory_context
             messages.insert(0, Message(
                 role=MessageRole.SYSTEM,
-                content=system_prompt
+                content=prompt_with_memory
             ))
         
         # Generate response

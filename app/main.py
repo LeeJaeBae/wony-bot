@@ -6,6 +6,7 @@ import sys
 from typing import Optional
 from uuid import UUID
 from pathlib import Path
+import logging
 
 import typer
 from rich.console import Console
@@ -23,6 +24,10 @@ from app.core.ollama import OllamaClient
 from app.services.chat import ChatService
 from app.services.prompt import PromptService
 from app.rag import RAGChain, VectorStore, EmbeddingManager, DocumentLoader
+from app.utils.logger_config import setup_logging
+
+# Setup logging
+setup_logging(level=logging.INFO)
 
 # Initialize Typer app
 app = typer.Typer(
