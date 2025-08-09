@@ -1,0 +1,45 @@
+# Core dependencies
+typer[all]>=0.9.0       # CLI framework
+rich>=13.0.0            # Terminal UI
+httpx>=0.25.0           # Async HTTP client
+pydantic>=2.0.0         # Data validation
+sqlalchemy>=2.0.0       # ORM
+alembic>=1.13.0         # DB migrations
+python-dotenv>=1.0.0    # Environment variables
+aiosqlite>=0.19.0       # Async SQLite
+
+# Optional for enhanced features
+prompt-toolkit>=3.0.0   # Advanced CLI interactions
+
+# RAG System Dependencies
+chromadb>=0.4.0         # Vector database
+sentence-transformers>=2.2.0  # Embeddings
+langchain>=0.1.0        # Document processing
+langchain-community>=0.0.10  # Community integrations
+pypdf>=3.17.0           # PDF processing
+python-docx>=1.0.0      # Word documents
+beautifulsoup4>=4.12.0  # Web scraping
+requests>=2.31.0        # HTTP requests
+tiktoken>=0.5.0         # Token counting
+rank-bm25>=0.2.2        # BM25 search
+faiss-cpu>=1.7.4        # Vector indexing
+spacy>=3.7.0            # NLP processing
+lxml>=4.9.0             # XML/HTML parsing
+pytesseract>=0.3.10     # OCR for scanned PDFs (optional)
+Pillow>=10.0.0          # Image processing for OCR
+
+# Testing dependencies
+pytest>=7.4.3           # Testing framework
+pytest-asyncio>=0.21.1  # Async test support
+pytest-cov>=4.1.0       # Coverage reporting
+pytest-mock>=3.12.0     # Mocking support
+
+# Code quality tools
+black>=23.12.1          # Code formatter
+flake8>=6.1.0           # Linter
+mypy>=1.7.1             # Type checker
+isort>=5.13.2           # Import sorter
+
+# Development tools
+ipython>=8.18.1         # Enhanced Python shell
+ipdb>=0.13.13           # Python debugger

@@ -1,0 +1,86 @@
+RAG (Retrieval-Augmented Generation) 기술 상세
+
+1. 아키텍처 구성요소
+
+Vector Database: ChromaDB
+- HNSW 인덱스 사용으로 빠른 유사도 검색
+- 메타데이터 필터링 지원
+- 영속성 지원으로 재시작 후에도 데이터 유지
+
+Embedding Model: Sentence-Transformers
+- BAAI/bge-small-en-v1.5 모델 사용
+- 384차원 임베딩 벡터
+- 다국어 지원 가능
+
+Document Processor: Langchain
+- RecursiveCharacterTextSplitter로 의미 단위 분할
+- MarkdownTextSplitter로 구조 보존
+- 다양한 파일 형식 로더 제공
+
+2. 하이브리드 검색 알고리즘
+
+Vector Search (70% 가중치)
+- 코사인 유사도 기반
+- 의미적 관련성 포착
+- 동의어 및 유사 개념 검색 가능
+
+Keyword Search (30% 가중치)
+- BM25 알고리즘 사용
+- 정확한 키워드 매칭
+- 희귀 단어에 높은 가중치
+
+Score Fusion
+- 정규화된 점수 결합
+- 가중 평균 계산
+- MMR로 다양성 확보
+
+3. 성능 최적화 기법
+
+Caching Strategy
+- 임베딩 캐시: 중복 계산 방지
+- 쿼리 캐시: 반복 검색 최적화
+- 결과 캐시: 동일 질문 빠른 응답
+
+Batch Processing
+- 32개 단위 배치 임베딩
+- 병렬 문서 처리
+- 비동기 인덱싱
+
+Index Optimization
+- FAISS 백엔드 옵션
+- Approximate Nearest Neighbor 검색
+- 증분 인덱싱 지원
+
+4. 청킹 전략
+
+Semantic Chunking
+- 문장 경계 유지
+- 컨텍스트 보존
+- 최대 512 토큰
+
+Overlap Strategy
+- 50 토큰 오버랩
+- 경계 정보 손실 방지
+- 연속성 보장
+
+Document-Specific Chunking
+- PDF: 페이지 단위 + 섹션
+- Code: 함수/클래스 단위
+- Markdown: 헤더 기반
+
+5. 품질 보증
+
+Relevance Filtering
+- 최소 유사도 임계값
+- 신뢰도 점수 계산
+- 소스 추적 가능
+
+Answer Generation
+- 컨텍스트 기반 응답
+- 출처 명시
+- 불확실성 표현
+
+Error Handling
+- 문서 없음 처리
+- 부분 실패 복구
+- 사용자 피드백 통합

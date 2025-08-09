@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project specific
+.env
+*.db
+*.sqlite
+*.sqlite3
+data/
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# Ollama models (if stored locally)
+models/
+
+# ChromaDB
+chroma_db/
+.chroma/
+
+# Test outputs
+junit.xml
+coverage.xml
+bandit-report.json
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Installation artifacts
+wony-exec
+.wonybot_location

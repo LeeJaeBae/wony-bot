@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run linting
+      run: |
+        # Format check with black
+        black --check app tests
+        
+        # Import sorting check
+        isort --check-only app tests
+        
+        # Linting with flake8
+        flake8 app tests --max-line-length=120 --ignore=E203,W503
+    
+    - name: Run type checking
+      run: |
+        mypy app --ignore-missing-imports --no-strict-optional
+    
+    - name: Run security checks
+      run: |
+        pip install bandit safety
+        # Security linting
+        bandit -r app -f json -o bandit-report.json || true
+        
+        # Check for known vulnerabilities
+        safety check --json || true
+    
+    - name: Run tests with coverage
+      run: |
+        pytest tests/ \
+          --cov=app \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          --junitxml=junit.xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          junit.xml
+          htmlcov/
+          bandit-report.json
+    
+    - name: Check coverage threshold
+      run: |
+        coverage report --fail-under=60
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Build package
+      run: |
+        pip install build
+        python -m build
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/
+
+  integration-test:
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      ollama:
+        image: ollama/ollama:latest
+        ports:
+          - 11434:11434
+        options: >-
+          --health-cmd "curl -f http://localhost:11434/api/tags || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Pull test model
+      run: |
+        # Pull a small model for testing
+        curl -X POST http://localhost:11434/api/pull -d '{"name": "tinyllama"}'
+    
+    - name: Run integration tests
+      env:
+        OLLAMA_HOST: http://localhost:11434
+        OLLAMA_MODEL: tinyllama
+      run: |
+        pytest tests/ -m integration || true
