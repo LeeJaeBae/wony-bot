@@ -1,6 +1,6 @@
 """Chat service for handling conversations"""
 
-from typing import Optional, AsyncGenerator
+from typing import Optional, AsyncGenerator, Dict, Any
 from uuid import UUID
 import time
 from app.core.ollama import OllamaClient
@@ -10,17 +10,23 @@ from app.config import settings
 from app.services.memory_manager import ConversationMemoryManager, ImportanceLevel
 from app.services.enhanced_memory import EnhancedMemoryManager
 from app.rag import RAGChain
+from app.agents.agent_manager import AgentManager
+from app.agents.hierarchical_manager import HierarchicalAgentManager
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 class ChatService:
     """Service for managing chat interactions"""
     
-    def __init__(self, enable_memory: bool = True, rag_chain: Optional[RAGChain] = None):
+    def __init__(self, enable_memory: bool = True, rag_chain: Optional[RAGChain] = None, 
+                 enable_agents: bool = True, use_hierarchical: bool = True):
         self.ollama = OllamaClient()
         self.session_manager = SessionManager()
         self.enable_memory = enable_memory
+        self.enable_agents = enable_agents
+        self.use_hierarchical = use_hierarchical
         
         # Initialize enhanced memory manager if enabled
         if enable_memory:
@@ -32,6 +38,22 @@ class ChatService:
             logger.info("Enhanced Memory Manager enabled for chat service")
         else:
             self.memory_manager = None
+        
+        # Initialize agent system
+        if enable_agents:
+            if use_hierarchical:
+                # Use hierarchical agent system by default
+                self.hierarchical_manager = HierarchicalAgentManager(ollama_client=self.ollama)
+                self.agent_manager = self.hierarchical_manager.agent_manager
+                logger.info("Hierarchical Agent System enabled with Orchestrator and consensus")
+            else:
+                # Use basic agent manager
+                self.agent_manager = AgentManager(ollama_client=self.ollama)
+                self.hierarchical_manager = None
+                logger.info("Basic Agent Manager enabled with specialized agents")
+        else:
+            self.agent_manager = None
+            self.hierarchical_manager = None
         
     async def chat(
         self,
@@ -164,3 +186,138 @@ class ChatService:
     async def delete_session(self, session_id: UUID) -> bool:
         """Delete a session completely"""
         return await self.session_manager.delete_session(session_id)
+    
+    async def chat_with_agent(
+        self,
+        message: str,
+        agent_id: Optional[str] = None,
+        session_id: Optional[UUID] = None,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Process a chat message using an agent
+        
+        Args:
+            message: User message/task
+            agent_id: Optional specific agent ID
+            session_id: Optional session ID
+            context: Optional context for the agent
+            
+        Returns:
+            Agent response
+        """
+        if not self.agent_manager:
+            return {
+                'status': 'error',
+                'error': 'Agent system not enabled'
+            }
+        
+        # Find or assign agent
+        result = await self.agent_manager.assign_task(
+            task=message,
+            agent_id=agent_id,
+            context=context
+        )
+        
+        # Save to session if provided
+        if session_id and result.get('status') == 'success':
+            await self.session_manager.add_message(
+                session_id=session_id,
+                role=MessageRole.USER,
+                content=message
+            )
+            
+            # Format agent response
+            agent_response = f"[Agent: {result.get('agent', 'Unknown')}]\n"
+            if 'findings' in result:
+                agent_response += result['findings']
+            elif 'response' in result:
+                agent_response += result['response']
+            elif 'analysis' in result:
+                agent_response += result['analysis']
+            elif 'summary' in result:
+                agent_response += result['summary']
+            elif 'creative_output' in result:
+                agent_response += result['creative_output']
+            else:
+                agent_response += json.dumps(result, indent=2)
+            
+            await self.session_manager.add_message(
+                session_id=session_id,
+                role=MessageRole.ASSISTANT,
+                content=agent_response
+            )
+        
+        return result
+    
+    def get_agent_manager(self) -> Optional[AgentManager]:
+        """Get the agent manager instance"""
+        return self.agent_manager
+    
+    def get_hierarchical_manager(self) -> Optional[HierarchicalAgentManager]:
+        """Get the hierarchical manager instance"""
+        return self.hierarchical_manager
+    
+    async def chat_with_hierarchical_agents(
+        self,
+        message: str,
+        session_id: Optional[UUID] = None,
+        require_consensus: bool = True,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Process a complex task using hierarchical agent system
+        
+        Args:
+            message: User message/task
+            session_id: Optional session ID
+            require_consensus: Whether to require consensus
+            context: Optional context
+            
+        Returns:
+            Hierarchical processing result
+        """
+        if not self.hierarchical_manager:
+            return {
+                'status': 'error',
+                'error': 'Hierarchical agent system not enabled'
+            }
+        
+        # Process with hierarchical system
+        result = await self.hierarchical_manager.process_complex_task(
+            task=message,
+            context=context,
+            require_consensus=require_consensus
+        )
+        
+        # Save to session if provided
+        if session_id and result.get('status') in ['success', 'partial']:
+            await self.session_manager.add_message(
+                session_id=session_id,
+                role=MessageRole.USER,
+                content=message
+            )
+            
+            # Format hierarchical response
+            response = f"[Hierarchical Agent System]\n"
+            response += f"📋 Task: {message}\n"
+            response += f"✅ Status: {result['status']}\n"
+            
+            if 'consensus' in result and result['consensus'].get('reached'):
+                response += f"🗳️ Consensus: {result['consensus']['approval_rate']:.1%} approval\n"
+            
+            if 'orchestration' in result:
+                response += f"\n📊 Results:\n"
+                orchestration = result['orchestration']
+                if 'execution' in orchestration:
+                    for task_id, exec_result in orchestration['execution'].items():
+                        if exec_result.get('status') == 'success':
+                            response += f"  • {task_id}: ✅ Completed\n"
+                        else:
+                            response += f"  • {task_id}: ❌ Failed\n"
+            
+            await self.session_manager.add_message(
+                session_id=session_id,
+                role=MessageRole.ASSISTANT,
+                content=response
+            )
+        
+        return result

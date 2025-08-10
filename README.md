@@ -28,6 +28,13 @@ GPT-OSS 모델 기반의 개인 비서 봇입니다. Ollama를 통해 로컬에�
 - 📊 **세션 요약** - 대화 세션 자동 요약 및 저장
 - 🔎 **메모리 검색** - 저장된 중요 정보 검색 및 조회
 
+### 🤖 AI 에이전트 시스템 (새 기능!)
+- 👨‍💼 **전문 에이전트** - 연구, 코딩, 분석, 요약, 창의 전문가
+- 🏛️ **계층적 구조** - Orchestrator가 작업 관리 및 분배
+- 🗳️ **집단 의사결정** - 모든 에이전트가 투표로 결정
+- ⚡ **병렬 처리** - 여러 에이전트가 동시에 작업
+- 📊 **성능 모니터링** - 에이전트별 성능 추적 및 최적화
+
 ## 📋 요구사항
 
 - Python 3.11 이상
@@ -162,6 +169,30 @@ wony memory-stats                   # 메모리 시스템 통계
 # 세션 요약
 wony summarize-session <session-id> # 특정 세션 요약
 wony summarize-session <id> --no-save # 저장 없이 요약만
+```
+
+### 🤖 에이전트 명령어
+
+```bash
+# 에이전트 목록 보기
+wony agents list
+
+# 에이전트 상태 확인
+wony agents status
+
+# 특정 에이전트에게 작업 할당
+wony agents assign researcher --task "AI 트렌드 조사"
+wony agents assign coder --task "파이썬 함수 작성"
+
+# 에이전트와 대화
+wony agent-chat --agent researcher
+wony agent-chat --agent auto  # 자동 선택
+
+# 계층적 시스템 사용
+wony hierarchical status       # 시스템 상태
+wony hierarchical hierarchy    # 계층 구조 보기
+wony hierarchical process --task "복잡한 작업 설명"
+wony hierarchical consensus    # 투표 히스토리
 ```
 
 ### 대화 중 명령어
