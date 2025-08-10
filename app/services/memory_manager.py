@@ -77,6 +77,9 @@ class ConversationMemoryManager:
     def analyze_importance(self, message: Message, context: List[Message] = None) -> Tuple[ImportanceLevel, List[str]]:
         """Analyze the importance of a message"""
         
+        # Ensure buffer does not grow unbounded even when only analyzing
+        self._ensure_buffer_limits()
+
         content = message.content.lower()
         tags = []
         importance_score = 0
@@ -94,8 +97,8 @@ class ConversationMemoryManager:
             importance_score += 1
             tags.append("question")
         
-        # Check for commands or instructions
-        if any(cmd in content for cmd in ["!", "해주", "please", "하세요"]):
+        # Check for explicit command phrases (avoid false positives like '안녕하세요')
+        if any(cmd in content for cmd in ["해줘", "해주세요", "해 주세요", "please"]):
             importance_score += 1
             tags.append("command")
         
@@ -109,7 +112,7 @@ class ConversationMemoryManager:
             importance_score += 1
             tags.append("factual")
         
-        # Determine importance level
+        # Determine base importance level by score
         if importance_score >= 4:
             importance = ImportanceLevel.CRITICAL
         elif importance_score >= 3:
@@ -130,7 +133,16 @@ class ConversationMemoryManager:
                     tags.append("answer")
                     break
         
-        return importance, list(set(tags))
+        # Strengthen importance based on specific tag presence
+        normalized_tags = list(set(tags))
+        if "critical" in normalized_tags and importance.value < ImportanceLevel.HIGH.value:
+            importance = ImportanceLevel.HIGH
+        if any(t in normalized_tags for t in ["task", "reminder"]) and importance.value < ImportanceLevel.MEDIUM.value:
+            importance = ImportanceLevel.MEDIUM
+        if "question" in normalized_tags and importance.value < ImportanceLevel.MEDIUM.value:
+            importance = ImportanceLevel.MEDIUM
+
+        return importance, normalized_tags
     
     def extract_key_information(self, message: Message) -> Dict[str, Any]:
         """Extract structured information from message"""
@@ -200,16 +212,7 @@ class ConversationMemoryManager:
         self.memory_buffer.append(memory_entry)
         
         # Prevent memory overflow
-        if len(self.memory_buffer) > self.MAX_BUFFER_SIZE:
-            logger.warning(f"Memory buffer overflow, cleaning up old entries")
-            # Keep only the most recent entries, prioritizing higher importance
-            sorted_buffer = sorted(
-                self.memory_buffer,
-                key=lambda x: (x.importance.value, x.timestamp.timestamp() if hasattr(x.timestamp, 'timestamp') else 0),
-                reverse=True
-            )
-            self.memory_buffer = sorted_buffer[:self.BUFFER_CLEANUP_THRESHOLD]
-            logger.info(f"Cleaned memory buffer to {len(self.memory_buffer)} entries")
+        self._ensure_buffer_limits()
         
         # Save to RAG if auto-save enabled
         if self.auto_save and self.rag_chain:
@@ -218,6 +221,22 @@ class ConversationMemoryManager:
             return True
         
         return False
+
+    def _ensure_buffer_limits(self):
+        """Ensure the in-memory buffer stays within configured limits"""
+        if len(self.memory_buffer) > self.MAX_BUFFER_SIZE:
+            logger.warning("Memory buffer overflow, cleaning up old entries")
+            # Keep only the most recent and most important entries
+            sorted_buffer = sorted(
+                self.memory_buffer,
+                key=lambda x: (
+                    x.importance.value,
+                    x.timestamp.timestamp() if hasattr(x.timestamp, "timestamp") else 0
+                ),
+                reverse=True
+            )
+            self.memory_buffer = sorted_buffer[:self.BUFFER_CLEANUP_THRESHOLD]
+            logger.info("Cleaned memory buffer to %d entries", len(self.memory_buffer))
     
     async def _save_to_rag(self, entry: MemoryEntry, extracted: Dict[str, Any]):
         """Save memory entry to RAG system"""
@@ -449,7 +468,8 @@ class ConversationMemoryManager:
             query=query,
             top_k=top_k,
             search_type="hybrid",
-            filter_metadata=filter_metadata if filter_metadata else None
+            filter_metadata=filter_metadata if filter_metadata else None,
+            collection_name=self.collection_name
         )
         
         # Additional tag filtering if needed

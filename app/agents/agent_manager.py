@@ -88,21 +88,50 @@ class AgentManager:
         Returns:
             Best suited agent or None
         """
-        # Check each agent's capability to handle the task
-        candidates = []
-        for agent_id, agent in self.agents.items():
-            if agent.can_handle(task) and agent.status == AgentStatus.IDLE:
-                candidates.append(agent)
+        task_lower = task.lower()
         
-        if not candidates:
-            # If no idle agents, check all agents
-            for agent_id, agent in self.agents.items():
+        # Heuristic scoring by role-specific keywords (handles common phrasings in tests)
+        role_score_map = {
+            AgentRole.RESEARCHER: ['research', 'find', 'search', 'investigate', 'lookup'],
+            AgentRole.CODER: ['code', 'program', 'implement', 'develop', 'write', 'function'],
+            AgentRole.ANALYST: ['analyze', 'analyse', 'data', 'statistics', 'pattern', 'insight'],
+            AgentRole.SUMMARIZER: ['summarize', 'summary', 'outline', 'key points', 'brief'],
+            AgentRole.CREATIVE: ['create', 'design', 'imagine', 'brainstorm', 'idea', 'story']
+        }
+        
+        def score_agent(agent: BaseAgent) -> int:
+            score = 0
+            # Capability tokens
+            for cap in agent.capabilities:
+                for token in cap.lower().replace('-', ' ').split():
+                    if token and token in task_lower:
+                        score += 2
+            # Role keyword tokens
+            for kw in role_score_map.get(agent.role, []):
+                if kw in task_lower:
+                    score += 3
+            # Prefer idle agents
+            if agent.status == AgentStatus.IDLE:
+                score += 1
+            return score
+        
+        # Score all agents and pick the highest
+        best_agent = None
+        best_score = 0
+        for agent in self.agents.values():
+            s = score_agent(agent)
+            if s > best_score:
+                best_score = s
+                best_agent = agent
+        
+        # Fallback to previous simple check if no score matched
+        if not best_agent:
+            for agent in self.agents.values():
                 if agent.can_handle(task):
-                    candidates.append(agent)
+                    best_agent = agent
+                    break
         
-        # Return the first available candidate
-        # In future, could implement more sophisticated selection
-        return candidates[0] if candidates else None
+        return best_agent
     
     async def assign_task(
         self,

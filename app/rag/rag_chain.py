@@ -160,29 +160,33 @@ Based on the provided context, here is my answer:"""
         query: str,
         top_k: int = 5,
         search_type: str = "hybrid",
-        filter_metadata: Optional[Dict[str, Any]] = None
+        filter_metadata: Optional[Dict[str, Any]] = None,
+        collection_name: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Search for relevant documents"""
+        
+        # Select target collection (default to chain's collection)
+        target_collection = collection_name or self.collection_name
         
         # Perform search based on type
         if search_type == "hybrid":
             results = self.retriever.hybrid_search(
                 query=query,
-                collection_name=self.collection_name,
+                collection_name=target_collection,
                 top_k=top_k,
                 filter_metadata=filter_metadata
             )
         elif search_type == "vector":
             results = self.retriever.vector_search(
                 query=query,
-                collection_name=self.collection_name,
+                collection_name=target_collection,
                 top_k=top_k,
                 filter_metadata=filter_metadata
             )
         elif search_type == "keyword":
             results = self.retriever.keyword_search(
                 query=query,
-                collection_name=self.collection_name,
+                collection_name=target_collection,
                 top_k=top_k
             )
         else:

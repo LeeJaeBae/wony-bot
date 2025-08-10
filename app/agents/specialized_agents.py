@@ -14,6 +14,37 @@ from app.models.schemas import Message, MessageRole
 logger = logging.getLogger(__name__)
 
 
+async def _consume_chat_stream(chat_call) -> str:
+    """Consume an Ollama chat call that may be a coroutine or an async iterator.
+    Supports both patterns used in tests and runtime.
+    """
+    # If the call returned a coroutine, await it to get the iterator/result
+    try:
+        import inspect
+        if inspect.iscoroutine(chat_call):
+            chat_call = await chat_call
+    except Exception:
+        # Fallback: proceed with whatever object we have
+        pass
+
+    # If the result is an async iterable, iterate and concatenate
+    response_text = ""
+    if hasattr(chat_call, "__aiter__"):
+        async for chunk in chat_call:
+            response_text += chunk
+        return response_text
+
+    # If it's a plain string (unlikely), return as is
+    if isinstance(chat_call, str):
+        return chat_call
+
+    # If it's awaitable (AsyncMock may be awaitable), try awaiting once to get text
+    try:
+        return await chat_call
+    except Exception:
+        # Last resort: string cast
+        return str(chat_call)
+
 class ResearchAgent(BaseAgent):
     """Agent specialized in research and information gathering"""
     
@@ -57,10 +88,8 @@ Be thorough, accurate, and cite sources when possible."""
                 Message(role=MessageRole.USER, content=research_prompt)
             ]
             
-            # Get response from Ollama
-            response = ""
-            async for chunk in self.ollama.chat(messages, stream=False):
-                response += chunk
+            # Get response from Ollama (supports coroutine or async iterator)
+            response = await _consume_chat_stream(self.ollama.chat(messages, stream=False))
             
             # Process and structure the response
             result = {
@@ -132,9 +161,7 @@ Follow best practices and ensure the code is production-ready."""
             ]
             
             # Get response from Ollama
-            response = ""
-            async for chunk in self.ollama.chat(messages, stream=False):
-                response += chunk
+            response = await _consume_chat_stream(self.ollama.chat(messages, stream=False))
             
             # Extract code blocks
             code_blocks = re.findall(r'```(?:\w+)?\n(.*?)\n```', response, re.DOTALL)
@@ -209,9 +236,7 @@ Be thorough and data-driven in your analysis."""
             ]
             
             # Get response from Ollama
-            response = ""
-            async for chunk in self.ollama.chat(messages, stream=False):
-                response += chunk
+            response = await _consume_chat_stream(self.ollama.chat(messages, stream=False))
             
             result = {
                 'status': 'success',
@@ -283,9 +308,7 @@ Keep the summary clear, concise, and comprehensive."""
             ]
             
             # Get response from Ollama
-            response = ""
-            async for chunk in self.ollama.chat(messages, stream=False):
-                response += chunk
+            response = await _consume_chat_stream(self.ollama.chat(messages, stream=False))
             
             result = {
                 'status': 'success',

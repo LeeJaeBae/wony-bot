@@ -107,15 +107,16 @@ class ChatService:
             except Exception as e:
                 logger.error(f"Failed to get memories: {e}")
         
-        # Add system prompt with memory context if provided
-        if system_prompt:
-            prompt_with_memory = system_prompt
+        # Add system prompt with memory context (even when no explicit system_prompt)
+        if system_prompt or memory_context:
+            prompt_with_memory = system_prompt or ""
             if memory_context:
                 prompt_with_memory += memory_context
-            messages.insert(0, Message(
-                role=MessageRole.SYSTEM,
-                content=prompt_with_memory
-            ))
+            if prompt_with_memory:
+                messages.insert(0, Message(
+                    role=MessageRole.SYSTEM,
+                    content=prompt_with_memory
+                ))
         
         # Generate response
         response_text = ""
@@ -163,10 +164,13 @@ class ChatService:
                 logger.error(f"Failed to save to memory: {e}")
         
         if not stream:
+            # Return response once
             yield response_text
-        
-        # Return session ID for reference
-        yield f"\n[session:{session_id}]"
+            # Then return session id marker
+            yield f"\n[session:{session_id}]"
+        else:
+            # In streaming mode, only emit session id once at the end
+            yield f"\n[session:{session_id}]"
     
     async def get_session_history(self, session_id: UUID) -> Optional[list]:
         """Get the chat history for a session"""

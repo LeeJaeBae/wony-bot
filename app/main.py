@@ -31,8 +31,8 @@ from app.utils.logger_config import setup_logging
 from app.agents.hierarchical_manager import HierarchicalAgentManager
 from app.agents.consensus import VoteType
 
-# Setup logging
-setup_logging(level=logging.INFO)
+# Setup logging: write to file only by default to keep chat output clean
+setup_logging(level=logging.INFO, to_console=False, to_file=True)
 
 # Initialize Typer app
 app = typer.Typer(
@@ -151,7 +151,7 @@ def chat(
             # Wony's personalized welcome with better design
             console.print(Panel.fit(
                 f"[bold magenta]💝 워니 비서 시스템 v1.0[/bold magenta]\n"
-                f"[yellow]야호! 재원아~ 나는 너의 개인 비서 워니야! 🎀[/yellow]\n"
+                f"[yellow]재원아~ 나는 너의 개인 비서 워니야! 🎀[/yellow]\n"
                 f"[cyan]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/cyan]\n"
                 f"[dim white]💬 티키타카 모드 | 짧고 빠른 대화[/dim white]\n"
                 f"[dim white]💾 자동 메모리 저장 | 중요 정보 기억[/dim white]\n"
@@ -182,7 +182,7 @@ def chat(
                 
                 # Handle special commands
                 if user_input.lower() in ["exit", "quit", "q", "ㅂㅂ", "바이"]:
-                    console.print("[yellow]야호! 다음에 또 만나~ 👋[/yellow]")
+                    console.print("[yellow]다음에 또 만나~ 👋[/yellow]")
                     break
                 
                 if user_input.lower() in ["clear", "클리어", "지워"]:
@@ -193,7 +193,7 @@ def chat(
                 
                 if user_input.lower() in ["new", "새로", "새대화"]:
                     session_id = None
-                    console.print("[green]🆕 야호! 새로운 대화 시작![/green]")
+                    console.print("[green]🆕 새로운 대화 시작![/green]")
                     continue
                 
                 # Check if this is a complex task that needs hierarchical processing
