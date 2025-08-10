@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# WonyBot Universal Launcher - supports all commands
+
+# Get the directory where WonyBot is installed
+WONY_DIR="$HOME/wony-bot"
+
+# Check if wony-bot directory exists
+if [ ! -d "$WONY_DIR" ]; then
+    echo "❌ WonyBot not found at $WONY_DIR"
+    echo "Please install WonyBot first."
+    exit 1
+fi
+
+# Change to WonyBot directory
+cd "$WONY_DIR"
+
+# Check if virtual environment exists
+if [ ! -d "venv" ]; then
+    echo "📦 Setting up virtual environment..."
+    ./quick_setup.sh
+fi
+
+# Activate virtual environment and run the command
+source venv/bin/activate
+
+# Pass all arguments to the Python app
+python -m app.main "$@"

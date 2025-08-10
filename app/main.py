@@ -217,6 +217,12 @@ def history(
     async def show_history():
         await init_db()
         
+        # Initialize chat service if needed
+        global chat_service
+        if chat_service is None:
+            from app.services.chat import ChatService
+            chat_service = ChatService()
+        
         sessions = await chat_service.list_sessions(limit=limit)
         
         if not sessions:
@@ -591,6 +597,7 @@ def memories(
         if rag_chain is None:
             rag_chain = RAGChain()
         if chat_service is None:
+            from app.services.chat import ChatService
             chat_service = ChatService(enable_memory=True, rag_chain=rag_chain)
         
         if not chat_service.memory_manager:
@@ -679,6 +686,7 @@ def memory_stats():
         if rag_chain is None:
             rag_chain = RAGChain()
         if chat_service is None:
+            from app.services.chat import ChatService
             chat_service = ChatService(enable_memory=True, rag_chain=rag_chain)
         
         if not chat_service.memory_manager:
@@ -739,6 +747,7 @@ def summarize_session(
         if rag_chain is None:
             rag_chain = RAGChain()
         if chat_service is None:
+            from app.services.chat import ChatService
             chat_service = ChatService(enable_memory=True, rag_chain=rag_chain)
         
         # Parse session ID
